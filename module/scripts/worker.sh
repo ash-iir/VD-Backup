@@ -634,6 +634,14 @@ dec_age() { # <infile> ; writes the decrypted plaintext of an age scrypt file to
   printf '%s\n' "$PW" | AGE_BIN="$AGE" AGE_IN="$1" AGE_OUT="$_dp" "$SCRIPT" -qec 'exec "$AGE_BIN" -d -o "$AGE_OUT" "$AGE_IN"' /dev/null >/dev/null 2>&1
   cat "$_dp" 2>/dev/null; rm -f "$_dp"
 }
+# age_pass_ok <infile>: 0 when $PW opens this age file. age checks the passphrase on the
+# header and writes plaintext as it goes, so a short prefix is enough: one scrypt KDF, no
+# full decrypt. Run before archive_safe so a wrong passphrase reports ERR_CRYPTO_PASS.
+age_pass_ok() {
+  _pp="$STATE/staging/probe.$OPID.$$"; head -c 262144 "$1" > "$_pp" 2>/dev/null
+  _pn="$(dec_age "$_pp" 2>/dev/null | head -c 1 | wc -c)"; rm -f "$_pp"
+  [ "${_pn:-0}" -ge 1 ]
+}
 # Passphrase encryption needs the bundled `age` AND a pty provider (`script`): age reads
 # the passphrase from a controlling terminal, so enc_age/dec_age run it under `script`. An
 # install whose bundled binaries are incomplete (e.g. a stale/partial module missing
@@ -1564,6 +1572,7 @@ restore() {
       fi
       sub="$TDIR/item$i"; mkdir -p "$sub"
       _tenc=none; echo "$arc" | grep -q '\.age$' && _tenc=age
+      if [ "$_tenc" = age ] && [ -n "$PW" ] && ! age_pass_ok "$af"; then TFAIL=$((TFAIL+1)); TERR="$TERR pass:$arc"; continue; fi
       archive_safe "$af" "$_tenc" || { TFAIL=$((TFAIL+1)); TERR="$TERR unsafe:$arc"; continue; }
       if echo "$arc" | grep -q '\.age$'; then
         if [ -z "$PW" ]; then TFAIL=$((TFAIL+1)); TERR="$TERR nopass:$arc"; continue; fi
@@ -1675,6 +1684,8 @@ restore() {
     # anti-traversal: reject a tampered archive BEFORE the destructive wipe, so a
     # crafted member can never escape into the filesystem and no live data is lost.
     _renc=none; echo "$arc" | grep -q '\.age$' && _renc=age
+    if [ "$_renc" = age ] && ! age_pass_ok "$af"; then
+      audit "restore wrong passphrase $arc"; finish false ERR_CRYPTO_PASS; return; fi
     archive_safe "$af" "$_renc" || { audit "restore unsafe archive $arc"; finish false ERR_UNSAFE_ARCHIVE; return; }
     # faithful restore: reproduce the backed-up state exactly (wipe then extract),
     # so files created after the backup do not linger. Extraction is checked; a
@@ -2157,6 +2168,8 @@ do_special_restore() {
     prog $(( 10 + i * 80 / (n>0?n:1) )) extracting "$cat"
     # anti-traversal: reject a tampered archive BEFORE the destructive wipe
     _senc=none; [ "$enc" = age-scrypt ] && _senc=age
+    if [ "$_senc" = age ] && ! age_pass_ok "$REF/$arc"; then
+      audit "special-restore wrong passphrase $cat:$arc"; finish false ERR_CRYPTO_PASS; return; fi
     archive_safe "$REF/$arc" "$_senc" || { audit "special-restore unsafe archive $cat:$arc"; finish false ERR_UNSAFE_ARCHIVE; return; }
     exec_ns rm -rf "$src" 2>/dev/null
     mkdir -p "$parent"
@@ -2304,6 +2317,8 @@ do_path_restore() {
   prog 5 preparing "path"; audit "path-restore start $REF -> $SRCP"; notify restore_start "path"
   # anti-traversal: reject a tampered archive BEFORE the destructive wipe
   _renc=none; [ "$enc" = age ] && _renc=age
+  if [ "$_renc" = age ] && ! age_pass_ok "$REF/$arc"; then
+    audit "path-restore wrong passphrase"; finish false ERR_CRYPTO_PASS; return; fi
   archive_safe "$REF/$arc" "$_renc" || { audit "path-restore unsafe archive $arc"; finish false ERR_UNSAFE_ARCHIVE; return; }
   # integrity before the destructive restore
   want="$("$JQ" -r '.sha256 // empty' "$M")"
@@ -2435,8 +2450,8 @@ do_adb_restore() {
   if [ "$enc" = age ] && ! crypto_available; then finish false ERR_CRYPTO_UNAVAIL; return; fi
   prog 5 preparing "adb"; audit "adb-restore start $REF"; notify restore_start "adb"
   # a wrong passphrase otherwise surfaces late as ERR_RESTORE (empty decrypt -> empty extract); probe
-  # once here so the user gets a clear ERR_CRYPTO_PASS. One scrypt KDF, cheap next to a real restore.
-  if [ "$enc" = age ] && [ "$(dec_age "$REF/$arc" 2>/dev/null | head -c 1 | wc -c)" -lt 1 ]; then
+  # once here so the user gets a clear ERR_CRYPTO_PASS.
+  if [ "$enc" = age ] && ! age_pass_ok "$REF/$arc"; then
     audit "adb-restore: wrong passphrase"; finish false ERR_CRYPTO_PASS; return; fi
   _renc=none; [ "$enc" = age ] && _renc=age
   archive_safe "$REF/$arc" "$_renc" || { audit "adb-restore unsafe archive"; finish false ERR_UNSAFE_ARCHIVE; return; }   # anti-traversal BEFORE writing
