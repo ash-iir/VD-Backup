@@ -667,19 +667,29 @@ decomp() { case "$1" in
 # holds a ".." component; archive_safe lists an archive (decrypting/decompressing by
 # encryption flag + filename) and returns 0 only when every member is contained.
 # Callers run this BEFORE the destructive wipe + extraction and abort on failure.
-scan_members() {
+# Optional <base> args: an archive extracted into a shared parent (/data/user/<u>,
+# Android/data, /data/misc/profiles) must also keep every member inside one of them
+# (<base>, <base>/..., optionally ./-prefixed), so it can only touch its own app's dir.
+scan_members() {   # [<base>...]
   while IFS= read -r _m; do
     case "$_m" in /*|..|../*|*/../*|*/..) return 1 ;; esac
+    [ $# -eq 0 ] && continue
+    _ok=1
+    for _b in "$@"; do
+      case "${_m#./}" in "$_b"|"$_b"/*) _ok=0; break ;; esac
+    done
+    [ "$_ok" -eq 0 ] || return 1
   done
   return 0
 }
-archive_safe() {   # <archive> <enc:none|age|age-scrypt>; 0 = safe, 1 = unsafe
-  { case "$2" in
-      age|age-scrypt) dec_age "$1" | { case "$1" in
+archive_safe() {   # <archive> <enc:none|age|age-scrypt> [<base>...]; 0 = safe, 1 = unsafe
+  _asf="$1"; _ase="$2"; shift 2
+  { case "$_ase" in
+      age|age-scrypt) dec_age "$_asf" | { case "$_asf" in
           *.tar.gz*) "$GZIP" -dc ;; *.tar.lz4*) "$ZSTD" -dq --format=lz4 -c ;;
           *.tar.zst*) "$ZSTD" -dqc ;; *) cat ;; esac; } ;;
-      *) decomp "$1" ;;
-    esac; } | exec_ns "$TAR" -t 2>/dev/null | scan_members
+      *) decomp "$_asf" ;;
+    esac; } | exec_ns "$TAR" -t 2>/dev/null | scan_members "$@"
 }
 
 # media_own [-R] <path>: create <path> and give it the ownership + SELinux context
@@ -1554,6 +1564,7 @@ restore() {
     while [ "$i" -lt "${n:-0}" ]; do
       arc="$("$JQ" -r ".items[$i].archive // empty" "$M")"
       want="$("$JQ" -r ".items[$i].sha256 // empty" "$M")"
+      ttyp="$("$JQ" -r ".items[$i].type // empty" "$M")"
       i=$((i+1))
       [ -n "$arc" ] || continue
       TTOTAL=$((TTOTAL+1)); af="$REF/$arc"
@@ -1564,7 +1575,9 @@ restore() {
       fi
       sub="$TDIR/item$i"; mkdir -p "$sub"
       _tenc=none; echo "$arc" | grep -q '\.age$' && _tenc=age
-      archive_safe "$af" "$_tenc" || { TFAIL=$((TFAIL+1)); TERR="$TERR unsafe:$arc"; continue; }
+      if [ "$ttyp" = profiles ]; then archive_safe "$af" "$_tenc" "ref/$PKG" "cur/$U/$PKG"
+      else archive_safe "$af" "$_tenc" "$PKG"; fi \
+        || { TFAIL=$((TFAIL+1)); TERR="$TERR unsafe:$arc"; continue; }
       if echo "$arc" | grep -q '\.age$'; then
         if [ -z "$PW" ]; then TFAIL=$((TFAIL+1)); TERR="$TERR nopass:$arc"; continue; fi
         dec_age "$af" | { case "$arc" in
@@ -1675,7 +1688,9 @@ restore() {
     # anti-traversal: reject a tampered archive BEFORE the destructive wipe, so a
     # crafted member can never escape into the filesystem and no live data is lost.
     _renc=none; echo "$arc" | grep -q '\.age$' && _renc=age
-    archive_safe "$af" "$_renc" || { audit "restore unsafe archive $arc"; finish false ERR_UNSAFE_ARCHIVE; return; }
+    if [ "$typ" = profiles ]; then archive_safe "$af" "$_renc" "ref/$PKG" "cur/$U/$PKG"
+    else archive_safe "$af" "$_renc" "$PKG"; fi \
+      || { audit "restore unsafe archive $arc"; finish false ERR_UNSAFE_ARCHIVE; return; }
     # faithful restore: reproduce the backed-up state exactly (wipe then extract),
     # so files created after the backup do not linger. Extraction is checked; a
     # failure after the wipe is reported (never a silent success).
@@ -1782,7 +1797,7 @@ do_import_databackup() {
   prog 60 extracting "$PKG"
   db_item() { # <archive> <parent> <target> <type>
     f="$REF/$1"; [ -f "$f" ] || return 0
-    archive_safe "$f" none || { audit "import-db unsafe archive $1 $PKG"; finish false ERR_UNSAFE_ARCHIVE; return 1; }
+    archive_safe "$f" none "$PKG" || { audit "import-db unsafe archive $1 $PKG"; finish false ERR_UNSAFE_ARCHIVE; return 1; }
     exec_ns rm -rf "$3" 2>/dev/null                   # faithful: wipe then extract (migration)
     mkdir -p "$2"; decomp "$f" | exec_ns "$TAR" $TARX -x -C "$2" 2>/dev/null
     [ $? -eq 0 ] || { audit "import-db extract failed $1 $PKG"; finish false ERR_RESTORE; return 1; }
