@@ -720,9 +720,9 @@ case "$verb" in
     id="$(printf '%s' "$ARGS_B64" | base64 -d 2>/dev/null | "$JQ" -r '.dest // empty' 2>/dev/null)"
     f="$STATE/dests/$id.json"
     { [ -n "$id" ] && [ -f "$f" ] && [ "$("$JQ" -r '.type // empty' "$f")" = restic ]; } || { err ERR_DEST_NONE "no such restic destination"; exit 0; }
-    repo="$("$JQ" -r '.repo // empty' "$f")"
+    restic_repo "$("$JQ" -r '.repo // empty' "$f")"
     _rs="$(command -v "$BIN/restic" 2>/dev/null || command -v "$STATE/bin/restic" 2>/dev/null || echo restic)"
-    _o="$(RCLONE_CONFIG="$SECRETS/rclone.conf" RESTIC_PASSWORD_FILE="$SECRETS/creds/$id.pass" "$_rs" -r "$repo" snapshots --json --tag vdbackup 2>/dev/null)"
+    _o="$(RCLONE_CONFIG="$SECRETS/rclone.conf" RESTIC_PASSWORD_FILE="$SECRETS/creds/$id.pass" "$_rs" -r "$RREPO" snapshots --json --tag vdbackup 2>/dev/null)"
     [ -n "$_o" ] || { err ERR_RESTIC "could not list the restic snapshots"; exit 0; }
     printf '%s' "$_o" | "$JQ" -c --arg d "$id" '{ok:true, dest:$d, backups:([.[]? | {dest:$d, id:.id, short_id:.short_id, time:.time,
         package:(((.tags // []) | map(select(. != "vdbackup")))[0] // ""), size:(.summary.total_bytes_processed // 0)}] | sort_by(.time) | reverse)}' 2>/dev/null \
