@@ -2260,6 +2260,7 @@ function saveSettings() {
         // Re-render the app list so dynamically-built labels (e.g. the per-app "Back up"
         // button, created with I18N.t at render time) pick up the new language too.
         if (typeof renderApps === "function") renderApps($("#search") ? $("#search").value : "");
+        backupsLoaded = false;   // the cached Backups panel (its Restore buttons) re-renders on the next visit
       });
     }
   });
