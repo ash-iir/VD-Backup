@@ -3356,6 +3356,7 @@ function boot() {
   helper("config-get").then(function (c) { CFG = c || {}; activeUser = (CFG.user != null) ? (CFG.user | 0) : 0; return I18N.init(CFG.language || "auto"); })
     .then(function () {
       I18N.apply();
+      if (window.VDB_UI) VDB_UI.sync(CFG);   // Classic / New interface choice (ui-switch.js)
       // The bridge runs one exec at a time, so call order is load order. The app list is the
       // first screen: ask for it first, and queue what the other tabs need only behind it.
       var rest = function () {
