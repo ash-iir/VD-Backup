@@ -1,0 +1,1 @@
+b57945d69032342848ffc606b056ed622b4da3a671fed5e3123766fd848822e4  VD-Backup-v1.19-next-arm64-v8a-full.zip
