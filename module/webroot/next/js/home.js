@@ -100,8 +100,10 @@ var NX_HOME = (function () {
       li.appendChild(el("span", "nx-where-n", s.id === "local" ? I18N.t("nx_src_local") : s.name));
       var v = el("span", "nx-where-v");
       if (s.state === "loading" && !p.n) v.appendChild(el("span", "spinner nx-chip-spin"));
-      else if (s.state === "err") v.textContent = "!";
-      else v.textContent = [I18N.t("ui_tg_n_backups", { n: p.n }), p.size ? fmtSize(p.size) : ""].filter(Boolean).join(" \u00b7 ");
+      else if (s.state === "err") { var w = el("span", "nx-chip-warn"); w.appendChild(icon("i-warn")); v.appendChild(w); }
+      else [I18N.t("ui_tg_n_backups", { n: p.n }), p.size ? fmtSize(p.size) : ""].filter(Boolean).forEach(function (t, i) {
+        if (i) v.appendChild(document.createTextNode(" \u00b7 ")); v.appendChild(el("bdi", null, t));
+      });
       li.appendChild(v);
       li.onclick = function () { NX.go("backups:apps"); NX_RS.show(s.id); };
       ul.appendChild(li);

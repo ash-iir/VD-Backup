@@ -53,7 +53,7 @@ var NX_RS = (function () {
   function chip(text, on, fn, extra) {
     var b = el("button", "nx-fchip" + (on ? " on" : ""));
     b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
-    b.appendChild(el("span", null, text));
+    b.appendChild(el("bdi", null, text));
     if (extra) b.appendChild(extra);
     b.onclick = fn; return b;
   }
@@ -97,7 +97,8 @@ var NX_RS = (function () {
     NX_SRC.list().forEach(function (s) {
       if (s.state !== "err" || (F.src !== "all" && F.src !== s.id)) return;
       var n = el("div", "notice nx-srcerr"), t = el("span", "grow");
-      t.textContent = s.err === "login" ? I18N.t("nx_src_login") : srcName(s.id) + ": " + s.err;
+      if (s.err === "login") t.textContent = I18N.t("nx_src_login");
+      else { t.appendChild(el("bdi", null, srcName(s.id))); t.appendChild(document.createTextNode(": " + s.err)); }
       var b = el("button", "btn small", I18N.t(s.err === "login" ? "nx_src_signin" : "nx_retry")); b.type = "button";
       b.onclick = s.err === "login"
         ? function () { openTelegramLogin().then(function (ok) { if (ok) NX_SRC.reload(s.id); }); }
@@ -121,12 +122,13 @@ var NX_RS = (function () {
     var app = APPS.filter(function (a) { return a.package === e.package; })[0];
     if (app) { ic.dataset.pkg = e.package; ic.dataset.vc = app.versionCode != null ? String(app.versionCode) : "0"; loadIcon(ic); }
     var g = el("div", "grow");
-    g.appendChild(el("div", "name", name));
+    var nm = el("div", "name", name); nm.dir = "auto"; g.appendChild(nm);
     if (e.label) g.appendChild(el("div", "pkg", e.package));
-    var bits = [dateOf(e.when)];
+    var bits = [dateOf(e.when)], sub = el("div", "sub");
     if (x.size) bits.push(fmtSize(x.size));
     if (e.vc && e.vc !== "0") bits.push("v" + e.vc);
-    g.appendChild(el("div", "sub", bits.filter(Boolean).join(" \u00b7 ")));
+    bits.filter(Boolean).forEach(function (t, i) { if (i) sub.appendChild(document.createTextNode(" \u00b7 ")); sub.appendChild(el("bdi", null, t)); });
+    g.appendChild(sub);
     g.appendChild(badges(x));
     li.appendChild(ic); li.appendChild(g);
     if (!bkSelectMode) {
