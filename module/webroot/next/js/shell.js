@@ -29,9 +29,9 @@
 
 var NX = (function () {
   var SUB = { dests: 1, settings: 1, updates: 1, about: 1, log: 1 };
-  var TITLE = { apps: "tab_apps", backups: "tab_backups", schedule: "tab_schedule", more: "nx_more",
+  var TITLE = { apps: "nx_tab_backup", backups: "restore", schedule: "tab_schedule", more: "nx_more",
                 dests: "tab_dests", settings: "tab_settings", updates: "tab_updates", about: "tab_about", log: "ui_log_title" };
-  var seg = "apps";
+  var specials = false;
 
   function updateBar(name) {
     var t = document.getElementById("nx-title");
@@ -43,23 +43,61 @@ var NX = (function () {
     });
   }
 
-  function setSeg(name) {
-    if (!name) return;
-    seg = name;
-    document.querySelectorAll(".nx-seg-b").forEach(function (b) {
+  // section chips of the Backup (#apps) and Restore (#backups) tabs
+  function setSeg(name, sec) {
+    var root = document.getElementById(sec || "backups");
+    if (!name || !root) return;
+    root.querySelectorAll(".nx-seg-b").forEach(function (b) {
       var on = b.dataset.seg === name;
       b.classList.toggle("on", on);
       b.setAttribute("aria-selected", on ? "true" : "false");
       if (on && b.scrollIntoView) b.scrollIntoView({ block: "nearest", inline: "nearest" });
     });
-    document.querySelectorAll(".nx-pane").forEach(function (p) { p.hidden = p.dataset.pane !== name; });
+    root.querySelectorAll(".nx-pane").forEach(function (p) { p.hidden = p.dataset.pane !== name; });
+    // the System data / Files / adb backup forms need the engine's special-categories list
+    if (root.id === "apps" && name !== "apps" && !specials && typeof loadSpecial === "function") { specials = true; loadSpecial(); }
   }
 
-  // "tab" or "tab:section" (a Backups section)
+  // "tab" or "tab:section"
   function go(target) {
     var p = String(target || "").split(":");
     if (typeof navTab === "function") navTab(p[0]);
-    if (p[0] === "backups" && p[1]) setSeg(p[1]);
+    if (p[1]) setSeg(p[1], p[0]);
+  }
+
+  // destination kinds as cards: icon, title, and the "(...)" part of the label as subtitle
+  var KIND_IC = { local: "i-phone", rclone: "i-cloud", restic: "i-db", gdrive: "i-cloud", telegram: "i-send" };
+  function kindCards() {
+    var sel = document.getElementById("d-type"), g = sel && sel.nextElementSibling;
+    if (!g || !g.classList.contains("segmented")) return;
+    g.classList.add("nx-kinds");
+    Array.prototype.forEach.call(g.querySelectorAll(".segment"), function (b) {
+      var o = sel.querySelector('option[value="' + b.dataset.val + '"]'); if (!o) return;
+      var key = o.getAttribute("data-i18n"), txt = key ? I18N.t(key) : o.textContent;
+      var m = /^(.*?)\s*[(\uff08](.*)[)\uff09]\s*$/.exec(txt);
+      b.removeAttribute("data-i18n");
+      b.textContent = "";
+      var ic = el("span", "nx-kind-ic"), t = el("span", "nx-kind-t");
+      var sv = document.createElementNS("http://www.w3.org/2000/svg", "svg"), u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      sv.setAttribute("class", "i"); u.setAttribute("href", "#" + (KIND_IC[b.dataset.val] || "i-cloud")); sv.appendChild(u); ic.appendChild(sv);
+      t.appendChild(el("b", null, m ? m[1] : txt));
+      if (m) t.appendChild(el("small", null, m[2]));
+      b.appendChild(ic); b.appendChild(t);
+    });
+  }
+
+  // running operations: one-line bar above the nav; a tap opens every op as a sheet
+  function opsBar() {
+    var ops = document.getElementById("ops"), scrim = document.getElementById("nx-ops-scrim");
+    if (!ops || !scrim) return;
+    function open(on) { ops.classList.toggle("nx-open", on); scrim.hidden = !on; }
+    ops.addEventListener("click", function (e) { if (!e.target.closest("button")) open(!ops.classList.contains("nx-open")); });
+    scrim.onclick = function () { open(false); };
+    new MutationObserver(function () { if (ops.hidden) open(false); }).observe(ops, { attributes: true, attributeFilter: ["hidden"] });
+    window.addEventListener("popstate", function (e) {
+      if (!ops.classList.contains("nx-open")) return;
+      e.stopImmediatePropagation(); open(false); history.pushState({ vdb: 1 }, "");
+    }, true);
   }
 
   function wrapEngine() {
@@ -70,10 +108,13 @@ var NX = (function () {
       updateBar(name);
       window.scrollTo(0, 0);
       if (name === "home" && window.NX_HOME) NX_HOME.show();
+      if (name === "backups" && window.NX_SRC) NX_SRC.load(false);
     };
     var apply = I18N.apply;
     I18N.apply = function (root) {
       apply(root);
+      kindCards();
+      if (window.NX_HOME && NX_HOME.relabel) NX_HOME.relabel();
       var cur = document.querySelector(".panel.active");
       updateBar(cur ? cur.id : "home");
     };
@@ -84,7 +125,7 @@ var NX = (function () {
       var t = e.target.closest && e.target.closest("[data-go]");
       if (t) { e.preventDefault(); go(t.getAttribute("data-go")); return; }
       var s = e.target.closest && e.target.closest(".nx-seg-b");
-      if (s) setSeg(s.dataset.seg);
+      if (s) setSeg(s.dataset.seg, s.closest("section").id);
     });
     var back = document.getElementById("nx-back");
     if (back) back.onclick = function () { history.back(); };
@@ -98,7 +139,8 @@ var NX = (function () {
       if (ticking) return; ticking = true;
       requestAnimationFrame(function () { ticking = false; bar.classList.toggle("scrolled", window.scrollY > 4); });
     }, { passive: true });
-    setSeg(seg);
+    kindCards();
+    opsBar();
     updateBar("home");
   }
 

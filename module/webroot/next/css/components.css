@@ -100,16 +100,26 @@ input[type="checkbox"]:not(.switch):not(.selbox), input[type="radio"] { width: 2
 .nx-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
 .nx-checks > label + label { border-top: 0; }
 
-/* segmented controls built by the engine from <select> */
-.segmented { display: flex; border: 1px solid var(--line-2); border-radius: 14px; overflow: hidden; }
-.segmented .segment { flex: 1 1 0; min-width: 0; min-height: 40px; padding: 4px 10px; border: 0; background: transparent;
-  color: var(--text); font-size: 13.5px; font-weight: 600; line-height: 1.2; }
-.segmented .segment + .segment { border-inline-start: 1px solid var(--line-2); }
-.segmented .segment.on { background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+/* segmented controls built by the engine from <select>: wrapping chips, so long or
+   translated labels take their own row instead of squeezing or clipping */
+.segmented { display: flex; flex-wrap: wrap; gap: 6px; }
+.segmented .segment { flex: 1 1 auto; min-width: 0; min-height: 42px; padding: 8px 14px; border: 1px solid var(--line-2);
+  border-radius: 12px; background: transparent; color: var(--text); font-size: 13.5px; font-weight: 600; line-height: 1.25;
+  overflow-wrap: break-word; }
+.segmented .segment.on { background: var(--accent-soft); border-color: transparent; color: var(--accent-ink); font-weight: 700; }
 .segmented .segment.on::before { content: "\2713"; margin-inline-end: 6px; }
-#set-netpolicy + .segmented { display: grid; grid-template-columns: 1fr 1fr; }
-#set-netpolicy + .segmented .segment:nth-child(3) { border-inline-start: 0; }
-#set-netpolicy + .segmented .segment:nth-child(n+3) { border-top: 1px solid var(--line-2); }
+/* destination kinds: cards with icon, title and a short subtitle, two per row */
+.segmented.nx-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.nx-kinds .segment { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 10px 12px; text-align: start; }
+.nx-kinds .segment:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.nx-kinds .segment.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.nx-kinds .segment.on::before { content: none; }
+.nx-kind-ic { width: 32px; height: 32px; flex: none; border-radius: 10px; display: grid; place-items: center;
+  background: var(--surface-3); color: var(--muted); }
+.nx-kind-ic .i { width: 18px; height: 18px; }
+.nx-kinds .segment.on .nx-kind-ic { background: var(--accent); color: var(--on-accent); }
+.nx-kind-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.nx-kind-t small { font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.3; }
 
 /* ---- cards and lists ---- */
 .card, .nx-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
@@ -228,6 +238,8 @@ details.grp[open] > summary.section-head { border-color: var(--accent-line, var(
   border-radius: 2px; background: var(--line-2); }
 @keyframes nx-up { from { transform: translateY(40px); opacity: .4; } }
 @media (prefers-reduced-motion: reduce) { .modal, .modal-card { animation: none; } }
+.nx-modal-open, .nx-modal-open body { overflow: hidden; }
+.modal-card:focus { outline: none; }
 @media (min-width: 640px) {
   .modal { align-items: center; padding: 24px; }
   .modal-card { border-radius: var(--r-lg); max-height: 86vh; }
@@ -259,24 +271,34 @@ details.grp[open] > summary.section-head { border-color: var(--accent-line, var(
 .codebox { max-height: 50vh; overflow: auto; background: var(--surface-2); border-radius: var(--r-sm); padding: 12px;
   font: 12px/1.5 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; direction: ltr; text-align: left; }
 
-/* ---- running operations ---- */
-.ops { position: fixed; inset-inline: 12px; z-index: 45; max-width: 600px; margin: 0 auto;
-  bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom)); background: var(--surface-3);
-  border: 1px solid var(--line-2); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); }
+/* ---- running operations: a one-line mini bar above the nav; tap opens every op as a sheet ---- */
+.ops { position: fixed; inset-inline: 8px; z-index: 45; max-width: 600px; margin: 0 auto;
+  bottom: calc(var(--nav-h) + 8px + env(safe-area-inset-bottom)); background: var(--surface-3);
+  border: 1px solid var(--line-2); border-radius: 16px; padding: 6px 6px 6px 14px; box-shadow: var(--shadow); cursor: pointer; }
+[dir="rtl"] .ops { padding: 6px 14px 6px 6px; }
 .ops.multi::before { content: attr(data-count); position: absolute; top: -8px; inset-inline-end: 12px; min-width: 20px; height: 20px;
   padding: 0 6px; border-radius: 10px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 800;
   display: grid; place-items: center; }
-.op-card + .op-card { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line-2); }
+.op-card { position: relative; }
+.ops:not(.nx-open) .op-card:not(:last-child) { display: none; }
+.ops:not(.nx-open) .op-card { display: flex; align-items: center; gap: 10px; min-height: 40px; margin: 0; padding: 0 0 4px; border: 0; }
+.ops:not(.nx-open) .op-label { flex: 0 1 auto; min-width: 0; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ops:not(.nx-open) .op-sub { flex: 1 1 0; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ops:not(.nx-open) .bar { position: absolute; inset-inline: 0 8px; bottom: -2px; height: 3px; margin: 0; }
+.ops:not(.nx-open) .op-cancel { margin: 0 0 0 auto; min-height: 34px; padding: 0 12px; flex: none; }
+.ops:not(.nx-open) .op-skipped, .ops:not(.nx-open) .op-failed { display: none; }
+.ops.nx-open { inset-inline: 0; bottom: 0; max-height: 75vh; overflow-y: auto; cursor: default; z-index: 61;
+  border-radius: var(--r-lg) var(--r-lg) 0 0; padding: 26px 20px calc(16px + env(safe-area-inset-bottom)); }
+.ops.nx-open::after { content: ""; position: absolute; top: 10px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+  border-radius: 2px; background: var(--line-2); }
+.ops.nx-open.multi::before { top: 8px; inset-inline-end: 16px; }
+.nx-ops-scrim { position: fixed; inset: 0; z-index: 60; background: var(--scrim); }
+.op-card + .op-card { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-2); }
 .op-label { font-weight: 650; font-size: 14.5px; }
 .bar { height: 8px; border-radius: 4px; background: var(--surface); overflow: hidden; margin-top: 10px; }
 .bar > i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 4px; transition: width .3s var(--ease); }
 .op-sub { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
 .op-cancel { margin-top: 10px; }
-.op-card.collapsed { display: flex; align-items: center; gap: 10px; }
-.op-card.collapsed .op-label { flex: 0 1 auto; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.op-card.collapsed .bar { flex: 1; margin-top: 0; }
-.op-card.collapsed .op-sub { display: none; }
-.op-card.collapsed .op-cancel { margin: 0; min-height: 30px; padding: 0 10px; }
 .op-skipped { margin-top: 6px; font-size: 12px; color: var(--muted); }
 .op-failed { margin-top: 10px; border-top: 1px solid var(--line-2); padding-top: 8px; max-height: 40vh; overflow-y: auto; }
 .op-failed-h { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }

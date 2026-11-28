@@ -91,6 +91,13 @@ def extra_fixtures(fix, ui):
          "created_at": shoot.ts(5, 20, 0)}]}
     fix["adb-backups"] = {"backups": [
         {"ref": "/sdcard/VDBackup/.adb/1", "created_at": shoot.ts(4, 11, 30), "mode": "total"}]}
+    fix["dests-list"] = {"dests": list(fix["dests-list"]["dests"]) + [{"id": "telegram", "type": "telegram"}]}
+    fix["telegram-list"] = {"ok": True, "backups": [
+        {"message_id": 21, "name": "org.telegram.messenger__20261107T201500Z_54321.vdb.tar", "size": 187000000},
+        {"message_id": 22, "name": "com.whatsapp__20261106T081000Z_231.vdb.tar", "size": 412000000}]}
+    fix["rclone-list"] = {"ok": True, "dest": "nas", "backups": [
+        {"dest": "nas", "rref": "com.nextcloud.client/20261105T030000Z_310", "package": "com.nextcloud.client", "tsvc": "20261105T030000Z_310"}]}
+    fix["restic-list"] = {"ok": True, "dest": "snapshots", "backups": []}
     cfg = dict(fix["config-get"])
     cfg["ui"] = ui
     fix["config-get"] = cfg
@@ -131,7 +138,7 @@ def main():
                         page.add_init_script(shoot.MOCK_JS % (fix_json, lang))
                         page.add_init_script("try{localStorage.setItem('vdb_theme','%s');localStorage.setItem('vdb_ui','%s')}catch(e){}" % (theme, ui))
                         page.goto(url, wait_until="networkidle")
-                        page.wait_for_timeout(900)
+                        page.wait_for_timeout(2500 if ui == "next" else 900)
                         for ctab, ntab, scroll, name in SCREENS:
                             tab = ntab if ui == "next" else ctab
                             page.evaluate("(t) => navTab(t)", tab)

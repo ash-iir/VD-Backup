@@ -94,3 +94,31 @@ Missing: nothing found. Not device-tested yet (mock harness only).
 Regenerate: `python3 tools/screenshots/shoot_ui_next.py` (both interfaces, en+ar,
 dark+light, `--dialogs` for the backup and app dialogs). The sheets here put Classic
 (top row) over New (bottom row).
+
+## Round 2 (device feedback on v1.19-next)
+
+- **Backup and Restore tabs.** Nav is Home, Backup, Restore, Schedule, More. Backup has
+  Apps / System data / Files / /data/adb chips with the backup forms; Restore has the
+  same chips plus Import and holds every list and restore action.
+- **Every backup in one list.** Restore > Apps shows local, Telegram, rclone, Google Drive,
+  restic (Snapshot) and remote Mirror backups together (`next/js/sources.js`,
+  `next/js/restore.js`). Remote sources load lazily one after another, are cached, and
+  show their own loading or error state (with Retry, or Sign in for Telegram). Chips filter
+  by source, type, encrypted, pinned and tag; sort by newest, oldest, name or size. A
+  remote backup restores through the verbs the Telegram/cloud dialogs use (pull, then
+  the normal restore; restic by snapshot id; Mirror by dest + package). A backup that is
+  both local and remote is one row with both badges. New helper verbs: `restic-list`,
+  `rclone-list {mirrors:true}`; `list-backups` now carries `size`.
+- **Home counts every source** (apps backed up, backups) and lists where they are with
+  size; a row or counter opens Restore pre-filtered. "Apps" means apps that have a backup.
+- **Segmented controls wrap** instead of squeezing; destination kinds are cards (icon,
+  title, subtitle), two per row.
+- **Running operations** are a one-line bar above the nav; a tap opens the full sheet.
+  Optional progress notification (Settings, off by default) via `cmd notification post`.
+- **Dialogs are one stack** (`next/js/modals.js`): the newest is on top with its own
+  backdrop and focus; Back, Escape and a backdrop tap close only the top one, through its
+  own Cancel/Close so the engine's promise settles; page scroll is locked meanwhile.
+- **Fast start** (`next/js/boot.js`): the seven small boot calls are one `bootstrap` exec;
+  the app, backup and schedule lists render from the last good copy and are redrawn only
+  if the fresh data differs; Home paints the last numbers on the first frame; skeletons
+  only on the very first open.
