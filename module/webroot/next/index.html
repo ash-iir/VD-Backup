@@ -70,6 +70,8 @@
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a4 4 0 0 0 5.66 0l2.5-2.5a4 4 0 0 0-5.66-5.66l-1.2 1.2"/><path d="M14 11a4 4 0 0 0-5.66 0l-2.5 2.5a4 4 0 0 0 5.66 5.66l1.2-1.2"/></symbol>
     <symbol id="i-heart" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></symbol>
     <symbol id="i-db" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.75"/><path d="M4.5 5.5v6c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75v-6"/><path d="M4.5 11.5v6c0 1.5 3.4 2.75 7.5 2.75s7.5-1.25 7.5-2.75v-6"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M20.5 3.5 3.5 10.5l6.5 2.5 2.5 6.5z"/><path d="m10 13 4.5-4.5"/></symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
   </svg>
 
   <header class="nx-top">
@@ -97,9 +99,10 @@
           <div class="storage-bar"><i id="ov-bar-used"></i></div>
           <div class="storage-line" id="ov-storage-line"></div>
         </div>
+        <ul class="nx-where" id="nx-where" hidden></ul>
         <div class="nx-stats">
-          <button class="nx-stat" type="button" data-go="apps"><b class="tile-n" id="ov-apps">0</b><span data-i18n="ui_overview_apps">Apps</span></button>
-          <button class="nx-stat" type="button" data-go="backups"><b class="tile-n" id="ov-backups">0</b><span data-i18n="ui_overview_backups">Backups</span></button>
+          <button class="nx-stat" type="button" data-go="backups:apps"><b class="tile-n" id="ov-apps">0</b><span data-i18n="nx_ov_apps">Apps backed up</span></button>
+          <button class="nx-stat" type="button" data-go="backups:apps"><b class="tile-n" id="ov-backups">0</b><span data-i18n="ui_overview_backups">Backups</span></button>
           <button class="nx-stat" type="button" data-go="backups:files"><b class="tile-n" id="ov-folders">0</b><span data-i18n="ui_overview_folders">Folders</span></button>
           <button class="nx-stat" type="button" data-go="schedule"><b class="tile-n" id="ov-scheduled">0</b><span data-i18n="ui_overview_scheduled">Scheduled</span></button>
         </div>
@@ -107,10 +110,10 @@
 
       <h2 class="nx-h" data-i18n="nx_quick">Quick actions</h2>
       <div class="nx-qa">
-        <button class="nx-qa-b" type="button" data-go="apps"><span class="nx-qa-ic go"><svg class="i"><use href="#i-up"/></svg></span><span data-i18n="nx_qa_backup">Back up apps</span></button>
-        <button class="nx-qa-b" type="button" data-go="backups"><span class="nx-qa-ic rs"><svg class="i"><use href="#i-restore"/></svg></span><span data-i18n="nx_qa_restore">Restore</span></button>
-        <button class="nx-qa-b" type="button" data-go="backups:system"><span class="nx-qa-ic"><svg class="i"><use href="#i-phone"/></svg></span><span data-i18n="nx_seg_system">System data</span></button>
-        <button class="nx-qa-b" type="button" data-go="backups:files"><span class="nx-qa-ic"><svg class="i"><use href="#i-folder"/></svg></span><span data-i18n="nx_seg_files">Files</span></button>
+        <button class="nx-qa-b" type="button" data-go="apps:apps"><span class="nx-qa-ic go"><svg class="i"><use href="#i-up"/></svg></span><span data-i18n="nx_qa_backup">Back up apps</span></button>
+        <button class="nx-qa-b" type="button" data-go="backups:apps"><span class="nx-qa-ic rs"><svg class="i"><use href="#i-restore"/></svg></span><span data-i18n="nx_qa_restore">Restore</span></button>
+        <button class="nx-qa-b" type="button" data-go="apps:system"><span class="nx-qa-ic"><svg class="i"><use href="#i-phone"/></svg></span><span data-i18n="nx_seg_system">System data</span></button>
+        <button class="nx-qa-b" type="button" data-go="apps:files"><span class="nx-qa-ic"><svg class="i"><use href="#i-folder"/></svg></span><span data-i18n="nx_seg_files">Files</span></button>
         <button class="nx-qa-b" type="button" data-go="schedule"><span class="nx-qa-ic"><svg class="i"><use href="#i-clock"/></svg></span><span data-i18n="tab_schedule">Schedule</span></button>
         <button class="nx-qa-b" type="button" data-go="dests"><span class="nx-qa-ic"><svg class="i"><use href="#i-cloud"/></svg></span><span data-i18n="tab_dests">Destinations</span></button>
       </div>
@@ -120,44 +123,86 @@
       <p id="nx-recent-empty" class="nx-empty" data-i18n="ui_log_empty" hidden>No activity yet.</p>
     </section>
 
-    <!-- ============ Apps ============ -->
+    <!-- ============ Backup (apps, system data, files, /data/adb) ============ -->
     <section id="apps" class="panel">
-      <div class="field nx-user" id="user-field" hidden>
-        <label for="user-sel" data-i18n="ui_user_label">User</label>
-        <select id="user-sel"></select>
+      <div class="nx-seg" role="tablist" data-noswipe>
+        <button type="button" class="nx-seg-b on" data-seg="apps"><svg class="i"><use href="#i-apps"/></svg><span data-i18n="tab_apps">Apps</span></button>
+        <button type="button" class="nx-seg-b" data-seg="system"><svg class="i"><use href="#i-phone"/></svg><span data-i18n="nx_seg_system">System data</span></button>
+        <button type="button" class="nx-seg-b" data-seg="files"><svg class="i"><use href="#i-folder"/></svg><span data-i18n="nx_seg_files">Files</span></button>
+        <button type="button" class="nx-seg-b" data-seg="root"><svg class="i"><use href="#i-root"/></svg><span>/data/adb</span></button>
       </div>
-      <div class="nx-sticky">
-        <div class="nx-search">
-          <svg class="i"><use href="#i-search"/></svg>
-          <input id="search" type="search" data-i18n-ph="search_apps" autocomplete="off" placeholder="Search apps">
-          <button id="refresh" class="nx-ib" type="button" data-i18n-title="refresh" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
-          <button id="app-select" class="nx-tbtn" type="button" data-i18n="ui_select">Select</button>
+      <div class="nx-pane" data-pane="apps">
+        <div class="field nx-user" id="user-field" hidden>
+          <label for="user-sel" data-i18n="ui_user_label">User</label>
+          <select id="user-sel"></select>
         </div>
-        <div class="nx-filters" data-noswipe>
-          <select id="app-filter">
-            <option value="user" data-i18n="opt_apps_user">User apps</option>
-            <option value="system" data-i18n="opt_apps_system">System apps</option>
-            <option value="all" data-i18n="opt_apps_all">All apps</option>
-          </select>
-          <select id="app-sort">
-            <option value="name" data-i18n="opt_sort_name">Name</option>
-            <option value="package" data-i18n="opt_sort_pkg">Package</option>
-          </select>
-          <label class="nx-chipchk"><input type="checkbox" id="app-show-excluded"><span data-i18n="ui_show_excluded">Show excluded</span></label>
+        <div class="nx-sticky">
+          <div class="nx-search">
+            <svg class="i"><use href="#i-search"/></svg>
+            <input id="search" type="search" data-i18n-ph="search_apps" autocomplete="off" placeholder="Search apps">
+            <button id="refresh" class="nx-ib" type="button" data-i18n-title="refresh" aria-label="Refresh"><svg class="i"><use href="#i-refresh"/></svg></button>
+            <button id="app-select" class="nx-tbtn" type="button" data-i18n="ui_select">Select</button>
+          </div>
+          <div class="nx-filters" data-noswipe>
+            <select id="app-filter">
+              <option value="user" data-i18n="opt_apps_user">User apps</option>
+              <option value="system" data-i18n="opt_apps_system">System apps</option>
+              <option value="all" data-i18n="opt_apps_all">All apps</option>
+            </select>
+            <select id="app-sort">
+              <option value="name" data-i18n="opt_sort_name">Name</option>
+              <option value="package" data-i18n="opt_sort_pkg">Package</option>
+            </select>
+            <label class="nx-chipchk"><input type="checkbox" id="app-show-excluded"><span data-i18n="ui_show_excluded">Show excluded</span></label>
+          </div>
+          <div id="app-tag-chips" class="tag-filter" hidden data-noswipe></div>
+          <div id="app-batchbar" class="nx-batch batchbar" hidden>
+            <span id="app-selcount" class="grow"></span>
+            <button id="app-selall" class="nx-tbtn" type="button" data-i18n="ui_select_all">All</button>
+            <button id="app-selnone" class="nx-tbtn" type="button" data-i18n="ui_select_none">None</button>
+            <button id="app-backupsel" class="btn go" type="button" data-i18n="ui_backup_selected">Back up</button>
+          </div>
         </div>
-        <div id="app-tag-chips" class="tag-filter" hidden data-noswipe></div>
-        <div id="app-batchbar" class="nx-batch batchbar" hidden>
-          <span id="app-selcount" class="grow"></span>
-          <button id="app-selall" class="nx-tbtn" type="button" data-i18n="ui_select_all">All</button>
-          <button id="app-selnone" class="nx-tbtn" type="button" data-i18n="ui_select_none">None</button>
-          <button id="app-backupsel" class="btn go" type="button" data-i18n="ui_backup_selected">Back up</button>
+        <button id="app-backuptag" class="btn go block" type="button" hidden data-i18n="ui_backup_tag">Back up tag</button>
+        <ul id="applist" class="list nx-list"></ul>
+      </div>
+      <div class="nx-pane" data-pane="system" hidden>
+        <p class="nx-hint" data-i18n="special_hint">Back up system-wide data: messages, contacts and call log, Wi-Fi and Bluetooth. Restore is same-device and needs a reboot.</p>
+        <div class="card nx-card nx-pad">
+          <div class="checks nx-checks" id="special-cats"></div>
+          <div class="notice warn" id="special-syssettings" hidden>
+            <label class="notice-toggle">
+              <input type="checkbox" class="switch" id="special-syssettings-cb">
+              <span data-i18n="ui_syssettings_label">Include system settings</span>
+              <span class="tag" data-i18n="ui_ssaid_optional">Optional</span>
+            </label>
+            <div class="notice-msg" data-i18n="msg_syssettings_warning">This backs up and, on restore, overwrites device-wide system settings such as display, sound and input options. It is optional and off by default, applies to the same device, and every value it changes is recorded in the activity log.</div>
+          </div>
+          <div class="checks">
+            <label class="nx-sw"><span class="nx-sw-t" data-i18n="special_portable">Also export a portable copy (SMS, call log, contacts as JSON)</span><input type="checkbox" class="switch" id="special-portable" checked></label>
+          </div>
+          <button id="special-backup" class="btn go block" type="button" data-i18n="backup">Back up</button>
         </div>
       </div>
-      <button id="app-backuptag" class="btn go block" type="button" hidden data-i18n="ui_backup_tag">Back up tag</button>
-      <ul id="applist" class="list nx-list"></ul>
+      <div class="nx-pane" data-pane="files" hidden>
+        <p class="nx-hint" data-i18n="ui_pathbk_hint">Back up any folder or file by its absolute path, with the same compression and encryption as an app backup. Restore writes it back to the same path.</p>
+        <div class="card nx-card nx-pad">
+          <div class="field nx-pathrow">
+            <input id="pb-path" type="text" data-i18n-ph="ui_pathbk_path_ph" spellcheck="false" autocomplete="off" placeholder="Absolute path (e.g. /storage/emulated/0/DCIM)">
+            <button id="pb-browse" class="btn" type="button" data-i18n="ui_browse">Browse</button>
+          </div>
+          <button id="pb-backup" class="btn go block" type="button" data-i18n="ui_pathbk_do">Back up</button>
+        </div>
+      </div>
+      <div class="nx-pane" data-pane="root" hidden>
+        <p class="nx-hint" data-i18n="ui_adb_hint">Back up the root environment under /data/adb - modules, their data and configs - all of it or a chosen subtree you pick from the file tree. Restore writes the selected files back with their original SELinux context, so root keeps working. Advanced; nothing is kept here but what you choose.</p>
+        <div class="card nx-card nx-pad">
+          <button id="adb-backup-open" class="btn go block" type="button" data-i18n="ui_adb_do">Back up /data/adb</button>
+        </div>
+      </div>
     </section>
 
-    <!-- ============ Backups ============ -->
+    <!-- ============ Restore (every backup, every source) ============ -->
     <section id="backups" class="panel">
       <div class="nx-seg" role="tablist" data-noswipe>
         <button type="button" class="nx-seg-b on" data-seg="apps"><svg class="i"><use href="#i-apps"/></svg><span data-i18n="tab_apps">Apps</span></button>
@@ -185,7 +230,10 @@
           <input id="bk-search" type="search" class="picker-search" data-i18n-ph="ui_bk_search" autocomplete="off" placeholder="Search backups by name, tag or app">
           <button id="bk-select" class="nx-tbtn" type="button" data-i18n="ui_select">Select</button>
         </div>
-        <div class="nx-cloudrow" data-noswipe>
+        <div id="nx-rs-src" class="nx-filters" data-noswipe hidden></div>
+        <div id="nx-rs-flt" class="nx-filters" data-noswipe></div>
+        <div id="nx-rs-status"></div>
+        <div class="nx-cloudrow" data-noswipe hidden>
           <button id="tg-backups-open" class="nx-chip" type="button"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="ui_tg_backups_btn">Restore from Telegram</span></button>
           <button id="rc-backups-open" class="nx-chip" type="button"><svg class="i"><use href="#i-cloud"/></svg><span data-i18n="ui_rc_backups_btn">Restore from cloud remote</span></button>
         </div>
@@ -201,49 +249,22 @@
         </div>
         <ul id="backuplist" class="list nx-list"></ul>
         <p id="backups-empty" class="nx-empty" data-i18n="backups_empty">No backups yet.</p>
+        <p id="nx-rs-nomatch" class="nx-empty" data-i18n="nx_bk_nomatch" hidden>No backups match these filters.</p>
       </div>
 
       <div class="nx-pane" data-pane="system" hidden>
-        <p class="nx-hint" data-i18n="special_hint">Back up system-wide data: messages, contacts and call log, Wi-Fi and Bluetooth. Restore is same-device and needs a reboot.</p>
-        <div class="card nx-card nx-pad">
-          <div class="checks nx-checks" id="special-cats"></div>
-          <div class="notice warn" id="special-syssettings" hidden>
-            <label class="notice-toggle">
-              <input type="checkbox" class="switch" id="special-syssettings-cb">
-              <span data-i18n="ui_syssettings_label">Include system settings</span>
-              <span class="tag" data-i18n="ui_ssaid_optional">Optional</span>
-            </label>
-            <div class="notice-msg" data-i18n="msg_syssettings_warning">This backs up and, on restore, overwrites device-wide system settings such as display, sound and input options. It is optional and off by default, applies to the same device, and every value it changes is recorded in the activity log.</div>
-          </div>
-          <div class="checks">
-            <label class="nx-sw"><span class="nx-sw-t" data-i18n="special_portable">Also export a portable copy (SMS, call log, contacts as JSON)</span><input type="checkbox" class="switch" id="special-portable" checked></label>
-          </div>
-          <button id="special-backup" class="btn go block" type="button" data-i18n="backup">Back up</button>
-        </div>
         <h2 class="nx-h" data-i18n="special_title">Special backups</h2>
         <ul id="special-list" class="list nx-list"></ul>
         <p id="special-empty" class="nx-empty" data-i18n="special_empty" hidden>No special backups yet.</p>
       </div>
 
       <div class="nx-pane" data-pane="files" hidden>
-        <p class="nx-hint" data-i18n="ui_pathbk_hint">Back up any folder or file by its absolute path, with the same compression and encryption as an app backup. Restore writes it back to the same path.</p>
-        <div class="card nx-card nx-pad">
-          <div class="field nx-pathrow">
-            <input id="pb-path" type="text" data-i18n-ph="ui_pathbk_path_ph" spellcheck="false" autocomplete="off" placeholder="Absolute path (e.g. /storage/emulated/0/DCIM)">
-            <button id="pb-browse" class="btn" type="button" data-i18n="ui_browse">Browse</button>
-          </div>
-          <button id="pb-backup" class="btn go block" type="button" data-i18n="ui_pathbk_do">Back up</button>
-        </div>
         <h2 class="nx-h" data-i18n="ui_pathbk_title">Folder / file backup</h2>
         <ul id="pathbk-list" class="list nx-list"></ul>
         <p id="pathbk-empty" class="nx-empty" data-i18n="ui_pathbk_empty" hidden>No folder backups yet.</p>
       </div>
 
       <div class="nx-pane" data-pane="root" hidden>
-        <p class="nx-hint" data-i18n="ui_adb_hint">Back up the root environment under /data/adb - modules, their data and configs - all of it or a chosen subtree you pick from the file tree. Restore writes the selected files back with their original SELinux context, so root keeps working. Advanced; nothing is kept here but what you choose.</p>
-        <div class="card nx-card nx-pad">
-          <button id="adb-backup-open" class="btn go block" type="button" data-i18n="ui_adb_do">Back up /data/adb</button>
-        </div>
         <h2 class="nx-h" data-i18n="ui_adb_title">System files (/data/adb)</h2>
         <ul id="adbbk-list" class="list nx-list"></ul>
         <p id="adbbk-empty" class="nx-empty" data-i18n="ui_adb_empty" hidden>No /data/adb backups yet.</p>
@@ -368,8 +389,8 @@
             <input id="d-id" type="text" data-i18n-ph="ph_dest_id" autocomplete="off" spellcheck="false" placeholder="id (e.g. mynas)">
             <select id="d-type">
               <option value="local">local</option>
-              <option value="rclone">rclone</option>
-              <option value="restic">restic</option>
+              <option value="rclone">rclone (SFTP, SMB, WebDAV, Drive, S3...)</option>
+              <option value="restic">restic (snapshot repo)</option>
               <option value="gdrive" data-i18n="ui_dest_gdrive">Google Drive (companion)</option>
               <option value="telegram" data-i18n="ui_dest_telegram">Telegram (unlimited, via your account)</option>
             </select>
@@ -565,6 +586,7 @@
           <input id="set-auto-keep" type="number" min="1" value="5" inputmode="numeric">
         </div>
         <label class="nx-sw"><span class="nx-sw-t"><span data-i18n="settings_thermal">Pause to cool down when the device gets hot</span><small data-i18n="settings_thermal_hint">During a long backup, VDBackup waits a moment between apps if the device is running hot, so a big batch cannot overheat it. On by default.</small></span><input type="checkbox" class="switch" id="set-thermal"></label>
+        <label class="nx-sw"><span class="nx-sw-t"><span data-i18n="settings_notify_progress">Show progress in a notification</span><small data-i18n="settings_notify_progress_hint">While a backup or restore runs, a notification shows its percent and current app, updated every few seconds. Off by default.</small></span><input type="checkbox" class="switch" id="set-notify-progress"></label>
         <label class="nx-sw"><span class="nx-sw-t"><span data-i18n="settings_space_preflight">Check free space before a batch backup</span><small data-i18n="settings_space_preflight_hint">Before backing up many apps to local storage, VDBackup estimates whether they fit and stops up front with a clear message if not, instead of filling the disk partway through. On by default.</small></span><input type="checkbox" class="switch" id="set-space-preflight"></label>
         <label class="nx-sw"><span class="nx-sw-t"><span data-i18n="settings_relaunch">Reopen apps after a backup</span><small data-i18n="settings_relaunch_hint">After a single backup, reopen the app that was running when it was paused for the snapshot. Off by default; batch and scheduled backups are not affected.</small></span><input type="checkbox" class="switch" id="set-relaunch"></label>
       </div>
@@ -724,13 +746,27 @@
 
   <nav class="tabs nx-nav" role="tablist">
     <button class="tab active" type="button" data-tab="home"><span class="nx-pill"><svg class="i"><use href="#i-home"/></svg></span><span data-i18n="nx_home">Home</span></button>
-    <button class="tab" type="button" data-tab="apps"><span class="nx-pill"><svg class="i"><use href="#i-apps"/></svg></span><span data-i18n="tab_apps">Apps</span></button>
-    <button class="tab" type="button" data-tab="backups"><span class="nx-pill"><svg class="i"><use href="#i-archive"/></svg></span><span data-i18n="tab_backups">Backups</span></button>
+    <button class="tab" type="button" data-tab="apps"><span class="nx-pill"><svg class="i"><use href="#i-up"/></svg></span><span data-i18n="nx_tab_backup">Backup</span></button>
+    <button class="tab" type="button" data-tab="backups"><span class="nx-pill"><svg class="i"><use href="#i-restore"/></svg></span><span data-i18n="restore">Restore</span></button>
     <button class="tab" type="button" data-tab="schedule"><span class="nx-pill"><svg class="i"><use href="#i-clock"/></svg></span><span data-i18n="tab_schedule">Schedule</span></button>
     <button class="tab" type="button" data-tab="more"><span class="nx-pill"><svg class="i"><use href="#i-more"/></svg></span><span data-i18n="nx_more">More</span></button>
   </nav>
 
   <div id="ops" class="ops" hidden></div>
+  <div id="nx-ops-scrim" class="nx-ops-scrim" hidden></div>
+
+  <div id="nx-rs-modal" class="modal" hidden role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-title" id="nx-rs-title"></div>
+      <div class="info-body" id="nx-rs-body"></div>
+      <div class="modal-actions">
+        <button class="btn" id="nx-rs-close" type="button" data-i18n="ui_close">Close</button>
+        <button class="btn danger" id="nx-rs-delete" type="button" data-i18n="delete">Delete</button>
+        <button class="btn" id="nx-rs-pull" type="button" data-i18n="nx_rs_download">Download to this device</button>
+        <button class="btn go" id="nx-rs-restore" type="button" data-i18n="restore">Restore</button>
+      </div>
+    </div>
+  </div>
 
   <div id="pw-modal" class="modal" hidden role="dialog" aria-modal="true">
     <div class="modal-card">
@@ -1120,7 +1156,11 @@
   <script src="i18n.js"></script>
   <script src="vdlu.js"></script>
   <script src="scripts.js"></script>
+  <script src="next/js/boot.js"></script>
+  <script src="next/js/modals.js"></script>
   <script src="next/js/shell.js"></script>
+  <script src="next/js/sources.js"></script>
+  <script src="next/js/restore.js"></script>
   <script src="next/js/home.js"></script>
 </body>
 </html>
