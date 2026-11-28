@@ -385,6 +385,10 @@
         </div>
         <div class="muted" data-i18n="settings_thermal_hint">During a long backup, VDBackup waits a moment between apps if the device is running hot, so a big batch cannot overheat it. On by default.</div>
         <div class="field check">
+          <input type="checkbox" class="switch" id="set-notify-progress"><span data-i18n="settings_notify_progress">Show progress in a notification</span>
+        </div>
+        <div class="muted" data-i18n="settings_notify_progress_hint">While a backup or restore runs, a notification shows its percent and current app, updated every few seconds. Off by default.</div>
+        <div class="field check">
           <input type="checkbox" class="switch" id="set-space-preflight"><span data-i18n="settings_space_preflight">Check free space before a batch backup</span>
         </div>
         <div class="muted" data-i18n="settings_space_preflight_hint">Before backing up many apps to local storage, VDBackup estimates whether they fit and stops up front with a clear message if not, instead of filling the disk partway through. On by default.</div>
