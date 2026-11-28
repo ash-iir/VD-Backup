@@ -30,6 +30,7 @@
   <link rel="icon" href="assets/logo-icon.svg">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="vdlu.css">
+  <script src="ui-switch.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -273,6 +274,14 @@
 
     <section id="settings" class="panel">
       <div class="card">
+        <div class="field">
+          <label for="ui-mode-sel" data-i18n="settings_interface">Interface</label>
+          <select id="ui-mode-sel">
+            <option value="classic" data-i18n="opt_ui_classic">Classic</option>
+            <option value="next" data-i18n="opt_ui_next">New</option>
+          </select>
+          <div class="muted" data-i18n="settings_interface_hint">Switch between the classic interface and the new one. Both have every feature, and you can switch back at any time.</div>
+        </div>
         <div class="field">
           <label data-i18n="settings_theme">Theme</label>
           <select id="set-theme">
